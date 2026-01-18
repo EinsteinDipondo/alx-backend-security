@@ -1,11 +1,18 @@
+"""
+Django settings for config project.
+"""
+
 from pathlib import Path
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-ip-tracking-project-key'
+# Quick-start development settings - unsuitable for production
+SECRET_KEY = 'django-insecure-your-secret-key-here'
 DEBUG = True
 ALLOWED_HOSTS = []
 
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -47,6 +54,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -54,6 +62,35 @@ DATABASES = {
     }
 }
 
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Cache configuration for rate limiting
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -61,18 +98,40 @@ CACHES = {
     }
 }
 
-# Geolocation settings
-GEOLOCATION_SETTINGS = {
-    'ENABLED': True,
-    'CACHE_TTL': 86400,  # 24 hours in seconds
-    'API_SERVICES': ['ipapi', 'ipinfo'],  # Services to try
-    'TIMEOUT': 3,  # Timeout for API requests
+# Rate limiting settings
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+
+# Rate limit configurations
+RATELIMIT_CONFIG = {
+    'anonymous': {
+        'rate': '5/m',  # 5 requests per minute for anonymous users
+        'method': 'ALL',
+        'block': True,
+    },
+    'authenticated': {
+        'rate': '10/m',  # 10 requests per minute for authenticated users
+        'method': 'ALL',
+        'block': True,
+    },
+    'login': {
+        'rate': '3/5m',  # 3 attempts per 5 minutes for login
+        'method': 'POST',
+        'block': True,
+    },
+    'api': {
+        'rate': '100/h',  # 100 requests per hour for API endpoints
+        'method': 'ALL',
+        'block': True,
+    },
 }
 
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
+# Login URL for authentication
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
-STATIC_URL = 'static/'
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# Session settings
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS

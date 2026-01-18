@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Rate Limit Test - IP Tracking Demo{% endblock %}
+
+{% block content %}
+<h1>Rate Limit Test Page</h1>
+
+<div class="rate-limit-info {% if rate_limit_info.rate_limited %}error{% else %}success{% endif %}">
+    <h3>Current Status</h3>
+    <p>IP Address: <code>{{ rate_limit_info.ip_address }}</code></p>
+    <p>User Authenticated: {{ rate_limit_info.is_authenticated|yesno:"Yes,No" }}</p>
+    <p>Rate Limited: <strong>{{ rate_limit_info.rate_limited|yesno:"YES,NO" }}</strong></p>
+    
+    {% if rate_limit_info.rate_limited %}
+        <p class="warning">You are currently being rate limited on this endpoint!</p>
+    {% else %}
+        <p class="success">You are not being rate limited.</p>
+    {% endif %}
+</div>
+
+<div class="rate-limit-info">
+    <h3>Configured Rate Limits</h3>
+    <ul>
+        {% for key, value in rate_limits.items %}
+            <li><strong>{{ key|title }}:</strong> {{ value }}</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<h3>Test Rate Limiting</h3>
+<p>Click the button below repeatedly to test rate limiting:</p>
+
+<button onclick="makeRequest()" class="btn" id="test-btn">Make Test Request</button>
+<button onclick="window.location.reload()" class="btn">Refresh Page</button>
+
+<div id="result" style="margin-top: 20px;"></div>
+
+<script>
+    let requestCount = 0;
+    
+    async function makeRequest() {
+        const btn = document.getElementById('test-btn');
+        const resultDiv = document.getElementById('result');
+        
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+        resultDiv.innerHTML = '<p>Making request...</p>';
+        
+        try {
+            const response = await fetch(window.location.href, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            requestCount++;
+            
+            if (response.status === 429) {
+                resultDiv.innerHTML = `
+                    <div class="rate-limit-info error">
+                        <h3>Rate Limit Exceeded!</h3>
+                        <p>Request #${requestCount} was blocked (429 Too Many Requests)</p>
+                        <p>Wait a minute and try again.</p>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="rate-limit-info success">
+                        <h3>Request Successful</h3>
+                        <p>Request #${requestCount} completed successfully.</p>
+                        <p>Status: ${response.status}</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            resultDiv.innerHTML = `
+                <div class="rate-limit-info error">
+                    <h3>Error</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Make Test Request';
+        }
+    }
+</script>
+{% endblock %}

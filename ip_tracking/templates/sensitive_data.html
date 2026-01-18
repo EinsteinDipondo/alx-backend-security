@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Sensitive Data - IP Tracking Demo{% endblock %}
+
+{% block content %}
+<h1>Sensitive Data</h1>
+
+<div class="rate-limit-info">
+    <h3>Rate Limit Status</h3>
+    <p>
+        {% if user.is_authenticated %}
+            You are authenticated. Rate limit: <strong>10 requests per minute</strong>
+        {% else %}
+            You are anonymous. Rate limit: <strong>5 requests per minute</strong>
+        {% endif %}
+    </p>
+</div>
+
+{% if user.is_authenticated %}
+    <h2>Your Sensitive Information</h2>
+    
+    <div class="rate-limit-info">
+        <h3>API Key</h3>
+        <code>{{ sensitive_data.api_key }}</code>
+        <p><small>Keep this secret!</small></p>
+    </div>
+    
+    <div class="rate-limit-info">
+        <h3>Account Balance</h3>
+        <p>${{ sensitive_data.account_balance }}</p>
+    </div>
+    
+    <div class="rate-limit-info">
+        <h3>Recent Activity</h3>
+        <ul>
+            {% for activity in sensitive_data.recent_activity %}
+                <li>{{ activity }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% else %}
+    <div class="rate-limit-info warning">
+        <h3>Access Denied</h3>
+        <p>You must be logged in to view sensitive data.</p>
+        <a href="{% url 'login' %}" class="btn">Login Now</a>
+    </div>
+{% endif %}
+
+<p>
+    <a href="{% url 'home' %}" class="btn">Back to Home</a>
+    <button onclick="window.location.reload()" class="btn">Refresh Page</button>
+</p>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Rate Limit Exceeded{% endblock %}
+
+{% block content %}
+<div class="rate-limit-info error">
+    <h1>429 - Too Many Requests</h1>
+    <p>Your request has been rate limited.</p>
+    
+    <h3>Details:</h3>
+    <ul>
+        <li>IP Address: {{ ip_address }}</li>
+        <li>Path: {{ path }}</li>
+        <li>User Agent: {{ user_agent|truncatechars:50 }}</li>
+    </ul>
+    
+    <p>Please wait a few minutes before trying again.</p>
+    
+    <p>
+        <a href="{% url 'home' %}" class="btn">Return to Home</a>
+        <button onclick="window.history.back()" class="btn">Go Back</button>
+    </p>
+</div>
+{% endblock %}

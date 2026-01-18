@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - IP Tracking Demo{% endblock %}
+
+{% block content %}
+<h1>Welcome to IP Tracking Demo</h1>
+
+<div class="rate-limit-info">
+    <h3>Rate Limits Configuration</h3>
+    <ul>
+        <li><strong>Anonymous Users:</strong> 5 requests per minute</li>
+        <li><strong>Authenticated Users:</strong> 10 requests per minute</li>
+        <li><strong>Login Attempts:</strong> 3 attempts per 5 minutes</li>
+        <li><strong>API Endpoints:</strong> 100 requests per hour</li>
+    </ul>
+</div>
+
+<div class="rate-limit-info">
+    <h3>Statistics</h3>
+    <p>Total Requests Logged: {{ total_requests }}</p>
+    <p>Unique IP Addresses: {{ unique_ips }}</p>
+</div>
+
+{% if not user.is_authenticated %}
+    <div class="rate-limit-info">
+        <h3>Login Required</h3>
+        <p>Please <a href="{% url 'login' %}" class="btn">Login</a> to access sensitive data and higher rate limits.</p>
+    </div>
+{% endif %}
+
+<h3>Available Endpoints:</h3>
+<ul>
+    <li><a href="{% url 'home' %}">Home</a> - No rate limiting</li>
+    <li><a href="{% url 'login' %}">Login</a> - Rate limited: 3 attempts/5min</li>
+    <li><a href="{% url 'sensitive_data' %}">Sensitive Data</a> - Different limits for auth/anonymous</li>
+    <li><a href="{% url 'api_test' %}">API Test</a> - Rate limited: 100 requests/hour</li>
+    <li><a href="{% url 'rate_limit_test' %}">Rate Limit Test</a> - Test rate limiting</li>
+</ul>
+{% endblock %}

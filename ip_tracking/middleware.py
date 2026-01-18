@@ -4,7 +4,6 @@ from django.http import HttpResponseForbidden
 from django.core.cache import cache
 from .models import RequestLog, BlockedIP, GeolocationCache
 import requests
-import json
 import time
 from datetime import timedelta
 
@@ -26,7 +25,6 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
         self.geolocation_services = [
             self._get_ipapi_location,
             self._get_ipinfo_location,
-            self._get_ipgeolocation_location,
         ]
     
     def get_client_ip(self, request):
@@ -91,8 +89,15 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
             cached_data['source'] = 'memory_cache'
             return cached_data
         
-        # Check database cache
-        db_cached = GeolocationCache.get_cached_location(ip_address)
+        # Check database cache if GeolocationCache model exists
+        db_cached = None
+        try:
+            # Try to use the GeolocationCache model if it exists
+            db_cached = self._get_db_cached_location(ip_address)
+        except Exception:
+            # If model doesn't exist or has issues, skip database cache
+            pass
+        
         if db_cached:
             # Also store in memory cache
             cache.set(cache_key, db_cached, self.geolocation_cache_ttl)
@@ -120,17 +125,64 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
         
         # Cache the results
         if geolocation_data.get('source') not in ['private_ip', 'failed']:
-            # Cache in database
-            GeolocationCache.set_cached_location(
-                ip_address, 
-                geolocation_data,
-                ttl_hours=24
-            )
+            try:
+                # Try to cache in database
+                self._set_db_cached_location(ip_address, geolocation_data)
+            except Exception:
+                # If database caching fails, just use memory cache
+                pass
             
             # Cache in memory
             cache.set(cache_key, geolocation_data, self.geolocation_cache_ttl)
         
         return geolocation_data
+    
+    def _get_db_cached_location(self, ip_address):
+        """Get geolocation data from database cache"""
+        try:
+            cache_entry = GeolocationCache.objects.get(ip_address=ip_address)
+            if not cache_entry.is_expired():
+                return {
+                    'country': cache_entry.country,
+                    'country_code': cache_entry.country_code,
+                    'city': cache_entry.city,
+                    'region': cache_entry.region,
+                    'latitude': float(cache_entry.latitude) if cache_entry.latitude else None,
+                    'longitude': float(cache_entry.longitude) if cache_entry.longitude else None,
+                    'timezone': cache_entry.timezone,
+                    'isp': cache_entry.isp,
+                    'source': 'cache',
+                }
+            else:
+                # Delete expired cache entry
+                cache_entry.delete()
+                return None
+        except GeolocationCache.DoesNotExist:
+            return None
+        except Exception:
+            # If any error occurs (e.g., table doesn't exist), return None
+            return None
+    
+    def _set_db_cached_location(self, ip_address, data, ttl_hours=24):
+        """Cache geolocation data in database"""
+        from datetime import timedelta
+        
+        expires_at = timezone.now() + timedelta(hours=ttl_hours)
+        
+        GeolocationCache.objects.update_or_create(
+            ip_address=ip_address,
+            defaults={
+                'country': data.get('country'),
+                'country_code': data.get('country_code'),
+                'city': data.get('city'),
+                'region': data.get('region'),
+                'latitude': data.get('latitude'),
+                'longitude': data.get('longitude'),
+                'timezone': data.get('timezone'),
+                'isp': data.get('isp'),
+                'expires_at': expires_at,
+            }
+        )
     
     def _is_private_ip(self, ip_address):
         """
@@ -145,13 +197,19 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
         ]
         
         # Convert IP to integer for comparison
-        ip_int = self._ip_to_int(ip_address)
+        try:
+            ip_int = self._ip_to_int(ip_address)
+        except (ValueError, AttributeError):
+            return False
         
         for start_str, end_str in private_ranges:
-            start_int = self._ip_to_int(start_str)
-            end_int = self._ip_to_int(end_str)
-            if start_int <= ip_int <= end_int:
-                return True
+            try:
+                start_int = self._ip_to_int(start_str)
+                end_int = self._ip_to_int(end_str)
+                if start_int <= ip_int <= end_int:
+                    return True
+            except (ValueError, AttributeError):
+                continue
         
         return False
     
@@ -194,7 +252,6 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
     def _get_ipinfo_location(self, ip_address):
         """
         Get location data from ipinfo.io (free tier: 50,000 requests/month).
-        Requires token for more features.
         """
         try:
             response = requests.get(
@@ -207,10 +264,14 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
                 
                 # Parse location coordinates if available
                 latitude = longitude = None
-                loc = data.get('loc', '').split(',')
-                if len(loc) == 2:
-                    latitude = float(loc[0])
-                    longitude = float(loc[1])
+                loc = data.get('loc', '')
+                if loc and ',' in loc:
+                    try:
+                        lat_lon = loc.split(',')
+                        latitude = float(lat_lon[0].strip())
+                        longitude = float(lat_lon[1].strip())
+                    except (ValueError, IndexError):
+                        pass
                 
                 return {
                     'country': data.get('country'),
@@ -227,14 +288,6 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
         
         return None
     
-    def _get_ipgeolocation_location(self, ip_address):
-        """
-        Get location data from ipgeolocation.io (requires API key).
-        """
-        # This would require an API key
-        # For now, return None - you can implement this if you get an API key
-        return None
-    
     def process_request(self, request):
         """
         Check if the client IP is blocked before processing the request.
@@ -243,13 +296,17 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
         
         if self.is_ip_blocked(client_ip):
             # Log the blocked attempt (without geolocation)
-            RequestLog.objects.create(
-                ip_address=client_ip,
-                path=request.path,
-                timestamp=timezone.now(),
-                country='Blocked',
-                city='N/A',
-            )
+            try:
+                RequestLog.objects.create(
+                    ip_address=client_ip,
+                    path=request.path,
+                    timestamp=timezone.now(),
+                    country='Blocked',
+                    city='N/A',
+                )
+            except Exception:
+                # If logging fails, still block the request
+                pass
             
             return HttpResponseForbidden(
                 "<h1>403 Forbidden</h1>"
@@ -272,7 +329,10 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
         # Get geolocation data
         geolocation_data = {}
         if self.geolocation_enabled:
-            geolocation_data = self.get_geolocation_data(client_ip)
+            try:
+                geolocation_data = self.get_geolocation_data(client_ip)
+            except Exception:
+                geolocation_data = {}
         
         # Create log entry
         try:
@@ -300,6 +360,7 @@ class BasicIPLoggingMiddleware(MiddlewareMixin):
                     timestamp=timezone.now(),
                 )
             except Exception:
+                # If even basic logging fails, just continue
                 pass
         
         return response
