@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IP Tracking System - PythonAnywhere</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+        .card { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+        .btn:hover { background: #0056b3; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔒 Django IP Tracking System</h1>
+    <p>Deployed on PythonAnywhere Free Tier</p>
+    
+    <div class="card">
+        <h2>📋 Features</h2>
+        <ul>
+            <li>IP Address Logging</li>
+            <li>Rate Limiting</li>
+            <li>IP Blacklisting</li>
+            <li>Anomaly Detection</li>
+            <li>API Documentation</li>
+        </ul>
+    </div>
+    
+    <div class="warning">
+        <h3>⚠️ Free Tier Limitations</h3>
+        <p>On PythonAnywhere free tier:</p>
+        <ul>
+            <li>Redis/Celery background tasks limited</li>
+            <li>Geolocation API calls disabled</li>
+            <li>Email sending uses console backend</li>
+            <li>Site sleeps after inactivity</li>
+        </ul>
+    </div>
+    
+    <div class="card">
+        <h2>🔗 Quick Links</h2>
+        <p>
+            <a href="/admin/" class="btn">Admin Panel</a>
+            <a href="/swagger/" class="btn">API Documentation</a>
+            <a href="/api/test/" class="btn">Test API</a>
+        </p>
+        
+        <h3>API Endpoints</h3>
+        <ul>
+            <li><a href="/api/logs/">/api/logs/</a> - View request logs</li>
+            <li><a href="/api/blocked-ips/">/api/blocked-ips/</a> - View blocked IPs</li>
+            <li><a href="/api/suspicious-ips/">/api/suspicious-ips/</a> - View suspicious IPs</li>
+        </ul>
+    </div>
+    
+    <div class="card">
+        <h2>📞 Contact/Support</h2>
+        <p>This is a demonstration project for ALX Backend Security.</p>
+        <p>For issues, check the error logs or contact the administrator.</p>
+    </div>
+    
+    <footer>
+        <p>Deployed on: einstein.pythonanywhere.com</p>
+        <p>Project: ALX Backend Security - IP Tracking Module</p>
+    </footer>
+</body>
+</html>
