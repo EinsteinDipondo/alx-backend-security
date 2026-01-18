@@ -54,6 +54,21 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Geolocation settings
+GEOLOCATION_SETTINGS = {
+    'ENABLED': True,
+    'CACHE_TTL': 86400,  # 24 hours in seconds
+    'API_SERVICES': ['ipapi', 'ipinfo'],  # Services to try
+    'TIMEOUT': 3,  # Timeout for API requests
+}
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
