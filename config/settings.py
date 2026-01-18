@@ -126,6 +126,33 @@ RATELIMIT_CONFIG = {
     },
 }
 
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    'detect-anomalies-hourly': {
+        'task': 'ip_tracking.tasks.detect_anomalies',
+        'schedule': 3600.0,  # Every hour
+    },
+    'clear-old-suspicious-ips-daily': {
+        'task': 'ip_tracking.tasks.clear_old_suspicious_ips',
+        'schedule': 86400.0,  # Every day
+    },
+    'generate-daily-report': {
+        'task': 'ip_tracking.tasks.generate_daily_report',
+        'schedule': 86400.0,  # Every day at midnight
+    },
+}
+
+# Email settings for alerts
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
+DEFAULT_FROM_EMAIL = 'noreply@example.com'
+ADMIN_EMAILS = ['admin@example.com']
+
 # Login URL for authentication
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
